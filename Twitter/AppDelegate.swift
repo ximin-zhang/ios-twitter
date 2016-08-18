@@ -9,6 +9,7 @@
 import UIKit
 import BDBOAuth1Manager
 
+
 @UIApplicationMain
 class AppDelegate: UIResponder, UIApplicationDelegate {
 
@@ -17,6 +18,31 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
 
     func application(application: UIApplication, didFinishLaunchingWithOptions launchOptions: [NSObject: AnyObject]?) -> Bool {
         // Override point for customization after application launch.
+
+        if(User.currentUser != nil) {
+
+            print("There is a current user")
+            let storyboard = UIStoryboard(name: "Main", bundle: nil)
+
+            let vc = storyboard.instantiateViewControllerWithIdentifier("TweetsNavigationController")
+
+            window?.rootViewController = vc
+            
+        } else {
+            
+            print("There is no current user")
+        }
+
+        NSNotificationCenter.defaultCenter().addObserverForName(User.userDidLogoutNotification, object: nil, queue: NSOperationQueue.mainQueue()) { (NSNotification) in
+
+            let storyboard = UIStoryboard(name: "Main", bundle: nil)
+
+            let vc = storyboard.instantiateInitialViewController()
+
+            self.window?.rootViewController = vc
+            
+        }
+
         return true
     }
 
@@ -46,36 +72,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     func application(application: UIApplication, openURL url: NSURL, sourceApplication: String?, annotation: AnyObject) -> Bool {
         print(url.description)
 
-        let requestToken = BDBOAuth1Credential(queryString: url.query)
-        let twitterClient = BDBOAuth1SessionManager(baseURL: NSURL(string: "https://api.twitter.com")!, consumerKey: "bRdoQCv27ZV1rvYBWGYwLj8OJ", consumerSecret: "lG85EeI4FWdcg8BaKfgQRlzxmxNNP2aofqG70ChGWWNPj28w7h")
-
-        twitterClient.fetchAccessTokenWithPath("oauth/access_token", method: "POST", requestToken: requestToken, success: { (accessToken: BDBOAuth1Credential!) in
-            print("I got the access token")
-
-            twitterClient.GET("1.1/account/verify_credentials.json", parameters: nil, progress: nil, success: { (task: NSURLSessionDataTask, response: AnyObject?) in
-
-                    print("account: \(response)")
-                    let user = response as! NSDictionary
-                    print("name: \(user["name"])")
-
-                }, failure: { (task: NSURLSessionDataTask?, error: NSError) in
-                    print(error.localizedDescription)
-
-
-            })
-
-        }) { (error: NSError!) in
-                print(error.localizedDescription)
-        }
-
-        twitterClient.GET("1.1/statuses/home_timeline.json", parameters: nil, progress: nil, success: { (task: NSURLSessionDataTask, response: AnyObject?) in
-                let tweets = response as! [NSDictionary]
-            for tweet in tweets {
-                print("\(tweet["text"])")
-            }
-        }) { (task: NSURLSessionDataTask?, error: NSError) in
-
-        }
+        TwitterClient.sharedInstance.handleOpenUrl(url)
 
         return true
     }
